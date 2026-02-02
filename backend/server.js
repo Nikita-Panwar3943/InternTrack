@@ -29,7 +29,7 @@ app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://intern-track-o5hx.vercel.app', process.env.FRONTEND_URL],
   credentials: true
 }));
 
