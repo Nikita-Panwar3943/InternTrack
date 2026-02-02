@@ -1,25 +1,26 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 const { catchAsync } = require('../utils/errorHandler');
 
 const router = express.Router();
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../uploads/resumes');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-// Configure multer for local storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `resume_${Date.now()}_${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
+// Cloudinary storage configuration
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'internship-tracker/resumes',
+    allowed_formats: ['pdf', 'doc', 'docx'],
+    public_id: () => `resume_${Date.now()}`,
+    resource_type: 'raw'
   }
 });
 
@@ -49,26 +50,19 @@ router.post('/resume', upload.single('resume'), catchAsync(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: 'Resume uploaded successfully',
+    message: 'Resume uploaded successfully to Cloudinary',
     resume: {
-      url: `/uploads/resumes/${req.file.filename}`,
+      url: req.file.path,
       filename: req.file.filename,
       originalName: req.file.originalname,
       size: req.file.size,
-      format: path.extname(req.file.originalname).substring(1).toUpperCase(),
-      localPath: req.file.path
+      format: req.file.format,
+      cloudinary: {
+        public_id: req.file.filename,
+        resource_type: req.file.resource_type
+      }
     }
   });
 }));
-
-// Serve uploaded files
-router.get('/resumes/:filename', (req, res) => {
-  const filePath = path.join(uploadsDir, req.params.filename);
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).json({ message: 'File not found' });
-  }
-});
 
 module.exports = router;
