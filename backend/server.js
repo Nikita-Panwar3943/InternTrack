@@ -52,53 +52,6 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Serve static files (for resume uploads)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Demo mode middleware for when MongoDB is not connected
-app.use((req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
-    // Handle auth routes in demo mode
-    if (req.path.includes('/auth/')) {
-      if (req.path.endsWith('/login')) {
-        return res.status(200).json({
-          success: true,
-          message: 'Login successful (Demo Mode)',
-          token: 'demo_token_' + Date.now(),
-          user: {
-            _id: 'demo_user_id',
-            email: req.body.email || 'demo@example.com',
-            role: 'student',
-            firstName: 'Demo',
-            lastName: 'User'
-          }
-        });
-      }
-      if (req.path.endsWith('/register')) {
-        return res.status(201).json({
-          success: true,
-          message: 'Registration successful (Demo Mode)',
-          token: 'demo_token_' + Date.now(),
-          user: {
-            _id: 'demo_user_id',
-            email: req.body.email || 'demo@example.com',
-            role: req.body.role || 'student',
-            firstName: req.body.firstName || 'Demo',
-            lastName: req.body.lastName || 'User'
-          }
-        });
-      }
-    }
-    
-    // Handle other routes with demo responses
-    if (req.path.includes('/students/') || req.path.includes('/recruiters/') || req.path.includes('/internships/')) {
-      return res.status(200).json({
-        success: true,
-        message: 'Demo mode - MongoDB not connected',
-        data: req.path.includes('/internships') ? [] : {}
-      });
-    }
-  }
-  next();
-});
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
